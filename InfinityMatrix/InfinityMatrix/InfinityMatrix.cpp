@@ -177,12 +177,15 @@ int main()
 {
 	Matrix<int> matrix; // бесконечная матрица int заполнена значениями -1
 	assert(matrix.size() == 0); // все ячейки свободны
+	
 	auto a = matrix(0)[0];
 	assert(a.IsEmpty());
 	assert(matrix.size() == 0);
+	
 	matrix(100)[100] = 314;
 	assert(matrix(100)[100] == 314);
 	assert(matrix.size() == 1);
+	
 	matrix(100)[100] = boost::none;
 	assert(matrix.size() == 0);
 }
