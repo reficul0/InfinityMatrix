@@ -90,10 +90,10 @@ class MultidimensionalMatrix
 	: public IMultidimensionalMatrix<ElementType>
 {	
 	using Dimensions = std::unordered_map<
-		size_t,
+		size_t/*index of other dimension or index of this dimension element*/,
 		std::pair<
-			boost::optional<ElementType>,
-			std::unique_ptr<IMultidimensionalMatrix<ElementType>>
+			boost::optional<ElementType>/*this dimension element value*/,
+			std::unique_ptr<IMultidimensionalMatrix<ElementType>/*other dimension*/>
 		>
 	>;
 	Dimensions _dimensions;
@@ -106,7 +106,8 @@ public:
 		: _count_of_values{ 0 }
 	{
 	}
-	MultidimensionalMatrix(std::function<void()> on_value_added,
+	MultidimensionalMatrix(
+		std::function<void()> on_value_added,
 		std::function<void()> on_value_deleted
 	)
 		: _count_of_values{ 0 }
@@ -114,7 +115,8 @@ public:
 		_on_value_added.connect(on_value_added);
 		_on_value_deleted.connect(on_value_deleted);
 	}
-	
+
+	// get this dimension element
 	Element<ElementType> operator[](size_t id) override
 	{
 		return Element<ElementType>(
@@ -123,6 +125,7 @@ public:
 			boost::bind(&MultidimensionalMatrix::OnValueDeleted, this)
 		);
 	}
+	// get dimension(create if not exists)
 	IMultidimensionalMatrix<ElementType>& operator()(size_t id) override
 	{
 		auto &dim = _create_dim_if_required(id)->second.second;
