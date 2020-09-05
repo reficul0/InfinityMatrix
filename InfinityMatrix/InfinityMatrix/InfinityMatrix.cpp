@@ -75,25 +75,25 @@ public:
 };
 
 template<typename ElementType>
-class IMatrix
+class IMultidimensionalMatrix
 {
 public:
-	virtual ~IMatrix() = default;
+	virtual ~IMultidimensionalMatrix() = default;
 	virtual Element<ElementType> operator[](size_t id) = 0;
-	virtual IMatrix<ElementType>& operator()(size_t id) = 0;
+	virtual IMultidimensionalMatrix<ElementType>& operator()(size_t id) = 0;
 	virtual size_t size() const = 0;
 };
 
 
 template<typename ElementType>
-class Matrix
-	: public IMatrix<ElementType>
+class MultidimensionalMatrix
+	: public IMultidimensionalMatrix<ElementType>
 {	
 	using Dimensions = std::unordered_map<
 		size_t,
 		std::pair<
 			boost::optional<ElementType>,
-			std::unique_ptr<IMatrix<ElementType>>
+			std::unique_ptr<IMultidimensionalMatrix<ElementType>>
 		>
 	>;
 	Dimensions _dimensions;
@@ -102,11 +102,11 @@ class Matrix
 	boost::signal<void()> _on_value_added;
 	boost::signal<void()> _on_value_deleted;
 public:
-	Matrix()
+	MultidimensionalMatrix()
 		: _count_of_values{ 0 }
 	{
 	}
-	Matrix(std::function<void()> on_value_added,
+	MultidimensionalMatrix(std::function<void()> on_value_added,
 		std::function<void()> on_value_deleted
 	)
 		: _count_of_values{ 0 }
@@ -119,18 +119,18 @@ public:
 	{
 		return Element<ElementType>(
 			_create_dim_if_required(id)->second.first,
-			boost::bind(&Matrix::OnValueAdded, this),
-			boost::bind(&Matrix::OnValueDeleted, this)
+			boost::bind(&MultidimensionalMatrix::OnValueAdded, this),
+			boost::bind(&MultidimensionalMatrix::OnValueDeleted, this)
 		);
 	}
-	IMatrix<ElementType>& operator()(size_t id) override
+	IMultidimensionalMatrix<ElementType>& operator()(size_t id) override
 	{
 		auto &dim = _create_dim_if_required(id)->second.second;
 		return *( dim 
 			? dim
-			: dim = std::make_unique<Matrix>(
-				boost::bind(&Matrix::OnValueAdded, this),
-				boost::bind(&Matrix::OnValueDeleted, this)
+			: dim = std::make_unique<MultidimensionalMatrix>(
+				boost::bind(&MultidimensionalMatrix::OnValueAdded, this),
+				boost::bind(&MultidimensionalMatrix::OnValueDeleted, this)
 			) 
 		);
 	}
@@ -175,7 +175,7 @@ private:
 
 int main()
 {
-	Matrix<int> matrix; // бесконечная матрица int заполнена значениями -1
+	MultidimensionalMatrix<int> matrix; // бесконечная матрица int заполнена значениями -1
 	assert(matrix.size() == 0); // все ячейки свободны
 	
 	auto a = matrix(0)[0];
