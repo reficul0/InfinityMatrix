@@ -81,7 +81,7 @@ public:
 	virtual ~IMatrix() = default;
 	virtual Element<ElementType> operator[](size_t id) = 0;
 	virtual IMatrix<ElementType>& operator()(size_t id) = 0;
-	virtual size_t size() = 0;
+	virtual size_t size() const = 0;
 };
 
 
@@ -96,20 +96,20 @@ class Matrix
 			std::unique_ptr<IMatrix<ElementType>>
 		>
 	>;
-	Dimensions _dims;
-	size_t _dims_size;
+	Dimensions _dimensions;
+	size_t _count_of_values;
 
 	boost::signal<void()> _on_value_added;
 	boost::signal<void()> _on_value_deleted;
 public:
 	Matrix()
-		: _dims_size{ 0 }
+		: _count_of_values{ 0 }
 	{
 	}
 	Matrix(std::function<void()> on_value_added,
 		std::function<void()> on_value_deleted
 	)
-		: _dims_size{ 0 }
+		: _count_of_values{ 0 }
 	{
 		_on_value_added.connect(on_value_added);
 		_on_value_deleted.connect(on_value_deleted);
@@ -135,19 +135,19 @@ public:
 		);
 	}
 
-	size_t size() override
+	size_t size() const override
 	{
-		return _dims_size;
+		return _count_of_values;
 	}
 private:
 	typename Dimensions::iterator _create_dim_if_required(size_t id)
 	{
-		auto element = _dims.find(id);
-		if (element == _dims.end())
+		auto element = _dimensions.find(id);
+		if (element == _dimensions.end())
 		{
 			bool is_success = false;
 			typename Dimensions::iterator iterator;
-			std::tie(iterator, is_success) = _dims.emplace(
+			std::tie(iterator, is_success) = _dimensions.emplace(
 				std::piecewise_construct,
 				std::forward_as_tuple(id),
 				std::forward_as_tuple(boost::none, nullptr)
@@ -163,12 +163,12 @@ private:
 	// виртуальность, чтобы если что прикрутить потокобезопасность
 	virtual void OnValueAdded()
 	{
-		++_dims_size;
+		++_count_of_values;
 		_on_value_added();
 	}
 	virtual void OnValueDeleted()
 	{
-		--_dims_size;
+		--_count_of_values;
 		_on_value_deleted();
 	}
 };
