@@ -81,7 +81,7 @@ public:
 	virtual ~IMultidimensionalMatrix() = default;
 	virtual Element<ElementType> operator[](size_t id) = 0;
 	virtual IMultidimensionalMatrix<ElementType>& operator()(size_t id) = 0;
-	virtual void for_each(std::function<void(ElementType&)> apply_me_for_each) = 0;
+	virtual void for_each(std::function<void(ElementType&, std::list<size_t>&)> apply_me_for_each) = 0;
 	virtual size_t size() const = 0;
 };
 
@@ -138,16 +138,10 @@ public:
 		);
 	}
 
-	void for_each(std::function<void(ElementType&)> apply_me_for_each) override
+	void for_each(std::function<void(ElementType&, std::list<size_t>&)> apply_me_for_each) override
 	{
-		for (auto &dimension : _dimensions)
-		{
-			if (dimension.second.first != boost::none)
-				apply_me_for_each(*dimension.second.first);
-			
-			if(dimension.second.second)
-				dimension.second.second->for_each(apply_me_for_each);
-		}
+		std::list<size_t> position;
+		_for_each(apply_me_for_each, position);
 	}
 
 	size_t size() const override
@@ -173,6 +167,24 @@ private:
 			return iterator;
 		}
 		return element;
+	}
+
+	void _for_each(std::function<void(ElementType&, std::list<size_t>&)> apply_me_for_each, std::list<size_t> &position)
+	{
+		for (auto &dimension : _dimensions)
+		{
+			position.push_back(dimension.first);
+			if (dimension.second.first != boost::none)
+				apply_me_for_each(*dimension.second.first, position);
+
+			if (dimension.second.second)
+			{
+				MultidimensionalMatrix *multidim_matrix= dynamic_cast<MultidimensionalMatrix*>(dimension.second.second.get());
+				if(multidim_matrix != nullptr)
+					multidim_matrix->_for_each(apply_me_for_each, position);
+			}
+			position.pop_back();
+		}
 	}
 	
 	virtual void OnValueAdded()
@@ -203,8 +215,11 @@ int main()
 	matrix(100)(100)[100] = 2;
 	matrix(100)(100)(100)[100] = 3;
 	matrix.for_each(
-		[](int val)
+		[](int val, std::list<size_t> &position)
 		{
+			std::cout << "[";
+			std::copy(position.begin(), position.end(), std::ostream_iterator<size_t>(std::cout, "; "));
+			std::cout << "] = ";
 			std::cout << val << std::endl;
 		}
 	);
