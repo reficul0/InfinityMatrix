@@ -81,9 +81,9 @@ public:
 	virtual ~IMultidimensionalMatrix() = default;
 	virtual Element<ElementType> operator[](size_t id) = 0;
 	virtual IMultidimensionalMatrix<ElementType>& operator()(size_t id) = 0;
+	virtual void for_each(std::function<void(ElementType&)> apply_me_for_each) = 0;
 	virtual size_t size() const = 0;
 };
-
 
 template<typename ElementType>
 class MultidimensionalMatrix
@@ -138,6 +138,18 @@ public:
 		);
 	}
 
+	void for_each(std::function<void(ElementType&)> apply_me_for_each) override
+	{
+		for (auto &dimension : _dimensions)
+		{
+			if (dimension.second.first != boost::none)
+				apply_me_for_each(*dimension.second.first);
+			
+			if(dimension.second.second)
+				dimension.second.second->for_each(apply_me_for_each);
+		}
+	}
+
 	size_t size() const override
 	{
 		return _count_of_values;
@@ -163,7 +175,6 @@ private:
 		return element;
 	}
 	
-	// виртуальность, чтобы если что прикрутить потокобезопасность
 	virtual void OnValueAdded()
 	{
 		++_count_of_values;
@@ -178,8 +189,8 @@ private:
 
 int main()
 {
-	MultidimensionalMatrix<int> matrix; // бесконечная матрица int заполнена значениями -1
-	assert(matrix.size() == 0); // все ячейки свободны
+	MultidimensionalMatrix<int> matrix;
+	assert(matrix.size() == 0);
 	
 	auto a = matrix(0)[0];
 	assert(a.IsEmpty());
@@ -189,6 +200,17 @@ int main()
 	assert(matrix(100)[100] == 314);
 	assert(matrix.size() == 1);
 	
+	matrix(100)(100)[100] = 2;
+	matrix(100)(100)(100)[100] = 3;
+	matrix.for_each(
+		[](int val)
+		{
+			std::cout << val << std::endl;
+		}
+	);
+	
 	matrix(100)[100] = boost::none;
+	matrix(100)(100)[100] = boost::none;
+	matrix(100)(100)(100)[100] = boost::none;
 	assert(matrix.size() == 0);
 }
